@@ -16,16 +16,36 @@ Or if already cloned:
 git submodule update --init --recursive
 ```
 
-## 🚀 Quick Test
+## 🚀 Quick Start
 
-### Prerequisites
-1. Install **Termux:X11** app from: https://github.com/termux/termux-x11/releases
+### Build (No Install Needed!)
 
-### Run Test
+```bash
+meson setup build
+ninja -C build
+```
+
+**That's it!** All files are in `build/` directory.
+
+### Test It
+
+```bash
+# Set environment
+export VK_LAYER_PATH="$PWD/build/config"
+export ENABLE_VULKANFX=1
+
+# Run vkcube
+vkcube
+```
+
+**Or use the test script:**
 
 ```bash
 ./complete_test.sh
 ```
+
+### Prerequisites
+1. Install **Termux:X11** app from: https://github.com/termux/termux-x11/releases
 
 This will:
 1. Start X11 server
