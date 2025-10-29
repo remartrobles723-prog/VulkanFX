@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-meson:
-    name: Build with Meson (Ubuntu)
+  build-linux-glibc:
+    name: Build for Linux (Glibc)
     runs-on: ubuntu-latest
     
     steps:
@@ -35,20 +35,91 @@ jobs:
     
     - name: List built files
       run: |
-        echo "Built libraries:"
+        echo "Built libraries (Glibc):"
+        file build/src/*.so
         ls -lh build/src/*.so
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: vulkanfx-meson-ubuntu
+        name: vulkanfx-linux-glibc-x86_64
         path: |
           build/src/*.so
           build/config/VulkanFX.json
         retention-days: 30
 
-  build-cmake:
-    name: Build with CMake (Ubuntu)
+  build-android-bionic:
+    name: Build for Android (Bionic)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r26b
+        add-to-path: true
+    
+    - name: Install Meson
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip ninja-build
+        pip3 install meson
+    
+    - name: Create Meson cross-file for Android
+      run: |
+        cat > android-cross.txt << 'EOF'
+        [binaries]
+        c = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang'
+        cpp = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++'
+        ar = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
+        strip = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
+        pkg-config = 'false'
+
+        [properties]
+        sys_root = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot'
+
+        [host_machine]
+        system = 'android'
+        cpu_family = 'aarch64'
+        cpu = 'armv8'
+        endian = 'little'
+        EOF
+        
+        # Expand environment variables
+        envsubst < android-cross.txt > android-cross-expanded.txt
+        cat android-cross-expanded.txt
+    
+    - name: Setup Meson build for Android
+      run: |
+        meson setup build_android \
+          --cross-file android-cross-expanded.txt \
+          -Dbuildtype=release
+    
+    - name: Build for Android
+      run: ninja -C build_android
+    
+    - name: Verify Android build
+      run: |
+        echo "Built libraries (Bionic):"
+        file build_android/src/*.so
+        ls -lh build_android/src/*.so
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: vulkanfx-android-bionic-arm64
+        path: |
+          build_android/src/*.so
+          build_android/config/VulkanFX.json
+        retention-days: 30
+
+  build-cmake-alternative:
+    name: Build with CMake (Alternative)
     runs-on: ubuntu-latest
     
     steps:
@@ -74,92 +145,21 @@ jobs:
     
     - name: List built files
       run: |
-        echo "Built libraries:"
+        echo "Built libraries (CMake):"
+        find build_cmake -name "*.so" -type f -exec file {} \;
         find build_cmake -name "*.so" -type f -exec ls -lh {} \;
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: vulkanfx-cmake-ubuntu
+        name: vulkanfx-cmake-linux
         path: |
           build_cmake/*.so
         retention-days: 30
 
-  build-android:
-    name: Build for Android (NDK)
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    
-    - name: Setup Android NDK
-      uses: nttld/setup-ndk@v1
-      with:
-        ndk-version: r26b
-    
-    - name: Build with CMake + NDK
-      run: |
-        cmake -B build_android \
-          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-          -DANDROID_ABI=arm64-v8a \
-          -DANDROID_PLATFORM=android-24 \
-          -DBUILD_ALL_VARIANTS=ON
-        cmake --build build_android -j$(nproc)
-    
-    - name: List built files
-      run: |
-        echo "Built Android libraries:"
-        find build_android -name "*.so" -type f -exec ls -lh {} \;
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: vulkanfx-android-arm64
-        path: |
-          build_android/*.so
-        retention-days: 30
-
-  build-multi-arch:
-    name: Build Multiple Architectures
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [x86_64, aarch64]
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          meson ninja-build \
-          libvulkan-dev vulkan-headers \
-          libx11-dev \
-          gcc g++ pkg-config
-    
-    - name: Build for ${{ matrix.arch }}
-      run: |
-        meson setup build_${{ matrix.arch }}
-        ninja -C build_${{ matrix.arch }}
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: vulkanfx-${{ matrix.arch }}
-        path: |
-          build_${{ matrix.arch }}/src/*.so
-        retention-days: 30
-
-  create-release:
+  create-release-package:
     name: Create Release Package
-    needs: [build-meson, build-cmake, build-android]
+    needs: [build-linux-glibc, build-android-bionic]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/VulkanFX'
     
@@ -172,35 +172,39 @@ jobs:
       with:
         path: artifacts
     
-    - name: Create release package
+    - name: Create release packages
       run: |
-        mkdir -p release/lib
-        mkdir -p release/config
-        mkdir -p release/docs
+        # Linux Glibc package
+        mkdir -p release/linux-glibc/lib
+        mkdir -p release/linux-glibc/config
+        mkdir -p release/linux-glibc/docs
         
-        # Copy libraries
-        find artifacts -name "*.so" -exec cp {} release/lib/ \;
+        cp artifacts/vulkanfx-linux-glibc-x86_64/*.so release/linux-glibc/lib/ || true
+        cp artifacts/vulkanfx-linux-glibc-x86_64/*.json release/linux-glibc/config/ || true
+        cp README.md BUILD_SYSTEMS.md CHANGELOG.md release/linux-glibc/docs/ || true
         
-        # Copy configs
-        cp config/VulkanFX.conf release/config/ || true
-        cp build/config/VulkanFX.json release/config/ || true
-        
-        # Copy documentation
-        cp README.md release/docs/
-        cp BUILD_SYSTEMS.md release/docs/ || true
-        cp WINLATOR_GUIDE.md release/docs/ || true
-        cp CHANGELOG.md release/docs/ || true
-        
-        # Create archive
         cd release
-        tar -czf ../VulkanFX-$(date +%Y%m%d).tar.gz *
+        tar -czf VulkanFX-linux-glibc-x86_64-$(date +%Y%m%d).tar.gz linux-glibc
         cd ..
         
-        ls -lh VulkanFX-*.tar.gz
+        # Android Bionic package
+        mkdir -p release/android-bionic/lib
+        mkdir -p release/android-bionic/config
+        mkdir -p release/android-bionic/docs
+        
+        cp artifacts/vulkanfx-android-bionic-arm64/*.so release/android-bionic/lib/ || true
+        cp artifacts/vulkanfx-android-bionic-arm64/*.json release/android-bionic/config/ || true
+        cp README.md WINLATOR_GUIDE.md release/android-bionic/docs/ || true
+        
+        cd release
+        tar -czf VulkanFX-android-bionic-arm64-$(date +%Y%m%d).tar.gz android-bionic
+        cd ..
+        
+        ls -lh release/*.tar.gz
     
-    - name: Upload release package
+    - name: Upload release packages
       uses: actions/upload-artifact@v4
       with:
-        name: vulkanfx-release-package
-        path: VulkanFX-*.tar.gz
+        name: vulkanfx-release-packages
+        path: release/*.tar.gz
         retention-days: 90

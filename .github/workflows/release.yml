@@ -12,18 +12,9 @@ on:
         default: 'v0.4.0'
 
 jobs:
-  build-release:
-    name: Build Release for ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux-x86_64
-            arch: x86_64
-          - os: ubuntu-latest
-            platform: android-arm64
-            arch: arm64-v8a
+  build-linux-glibc:
+    name: Build for Linux (Glibc)
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
@@ -31,107 +22,152 @@ jobs:
       with:
         submodules: recursive
     
-    - name: Install dependencies (Linux)
-      if: matrix.platform == 'linux-x86_64'
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          meson ninja-build cmake \
+          meson ninja-build \
           libvulkan-dev vulkan-headers \
-          libx11-dev \
+          libx11-dev libxrandr-dev \
           gcc g++ pkg-config
     
-    - name: Setup Android NDK
-      if: matrix.platform == 'android-arm64'
-      uses: nttld/setup-ndk@v1
-      with:
-        ndk-version: r26b
-    
-    - name: Build for Linux
-      if: matrix.platform == 'linux-x86_64'
+    - name: Build with Meson
       run: |
         meson setup build
         ninja -C build
-        
-        # Also build with CMake
-        cmake -B build_cmake -DBUILD_ALL_VARIANTS=ON
-        cmake --build build_cmake
     
-    - name: Build for Android
-      if: matrix.platform == 'android-arm64'
+    - name: Package Linux release
       run: |
-        cmake -B build_android \
-          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-          -DANDROID_ABI=${{ matrix.arch }} \
-          -DANDROID_PLATFORM=android-24 \
-          -DBUILD_ALL_VARIANTS=ON
-        cmake --build build_android
-    
-    - name: Package release (Linux)
-      if: matrix.platform == 'linux-x86_64'
-      run: |
-        mkdir -p release/${{ matrix.platform }}/lib
-        mkdir -p release/${{ matrix.platform }}/config
-        mkdir -p release/${{ matrix.platform }}/docs
-        mkdir -p release/${{ matrix.platform }}/scripts
+        mkdir -p release/linux-glibc-x86_64/lib
+        mkdir -p release/linux-glibc-x86_64/config
+        mkdir -p release/linux-glibc-x86_64/docs
+        mkdir -p release/linux-glibc-x86_64/scripts
+        mkdir -p release/linux-glibc-x86_64/fx
         
         # Copy libraries
-        cp build/src/*.so release/${{ matrix.platform }}/lib/
+        cp build/src/*.so release/linux-glibc-x86_64/lib/
         
         # Copy configs
-        cp config/VulkanFX.conf release/${{ matrix.platform }}/config/
-        cp build/config/VulkanFX.json release/${{ matrix.platform }}/config/
+        cp config/VulkanFX.conf release/linux-glibc-x86_64/config/
+        cp build/config/VulkanFX.json release/linux-glibc-x86_64/config/
         
         # Copy documentation
-        cp README.md release/${{ matrix.platform }}/docs/
-        cp CHANGELOG.md release/${{ matrix.platform }}/docs/ || true
-        cp BUILD_SYSTEMS.md release/${{ matrix.platform }}/docs/ || true
-        cp WINLATOR_GUIDE.md release/${{ matrix.platform }}/docs/ || true
-        cp IMAGE_TESTING.md release/${{ matrix.platform }}/docs/ || true
+        cp README.md release/linux-glibc-x86_64/docs/
+        cp CHANGELOG.md release/linux-glibc-x86_64/docs/ || true
+        cp BUILD_SYSTEMS.md release/linux-glibc-x86_64/docs/ || true
+        cp WINLATOR_GUIDE.md release/linux-glibc-x86_64/docs/ || true
+        cp IMAGE_TESTING.md release/linux-glibc-x86_64/docs/ || true
+        cp GITHUB_ACTIONS.md release/linux-glibc-x86_64/docs/ || true
         
         # Copy scripts
-        cp *.sh release/${{ matrix.platform }}/scripts/ || true
+        cp *.sh release/linux-glibc-x86_64/scripts/ 2>/dev/null || true
         
         # Copy ReShade shaders
-        cp -r fx release/${{ matrix.platform }}/ || true
+        cp -r fx/* release/linux-glibc-x86_64/fx/ 2>/dev/null || true
         
         # Create archive
         cd release
-        tar -czf VulkanFX-${{ matrix.platform }}.tar.gz ${{ matrix.platform }}
+        tar -czf VulkanFX-linux-glibc-x86_64.tar.gz linux-glibc-x86_64
         cd ..
     
-    - name: Package release (Android)
-      if: matrix.platform == 'android-arm64'
-      run: |
-        mkdir -p release/${{ matrix.platform }}/lib
-        mkdir -p release/${{ matrix.platform }}/config
-        mkdir -p release/${{ matrix.platform }}/docs
-        
-        # Copy libraries
-        find build_android -name "*.so" -exec cp {} release/${{ matrix.platform }}/lib/ \;
-        
-        # Copy configs
-        cp config/VulkanFX.conf release/${{ matrix.platform }}/config/
-        
-        # Copy documentation
-        cp README.md release/${{ matrix.platform }}/docs/
-        cp WINLATOR_GUIDE.md release/${{ matrix.platform }}/docs/ || true
-        
-        # Create archive
-        cd release
-        tar -czf VulkanFX-${{ matrix.platform }}.tar.gz ${{ matrix.platform }}
-        cd ..
-    
-    - name: Upload release artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: VulkanFX-${{ matrix.platform }}
-        path: release/VulkanFX-${{ matrix.platform }}.tar.gz
-        retention-days: 90
+        name: VulkanFX-linux-glibc-x86_64
+        path: release/VulkanFX-linux-glibc-x86_64.tar.gz
+
+  build-android-bionic:
+    name: Build for Android (Bionic)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r26b
+        add-to-path: true
+    
+    - name: Install Meson
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip ninja-build gettext-base
+        pip3 install meson
+    
+    - name: Create Meson cross-file
+      run: |
+        cat > android-cross.txt << 'EOF'
+        [binaries]
+        c = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang'
+        cpp = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++'
+        ar = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
+        strip = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
+        pkg-config = 'false'
+
+        [properties]
+        sys_root = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot'
+
+        [host_machine]
+        system = 'android'
+        cpu_family = 'aarch64'
+        cpu = 'armv8'
+        endian = 'little'
+        EOF
+        
+        envsubst < android-cross.txt > android-cross-expanded.txt
+    
+    - name: Build with Meson for Android
+      run: |
+        meson setup build_android \
+          --cross-file android-cross-expanded.txt \
+          -Dbuildtype=release
+        ninja -C build_android
+    
+    - name: Verify build
+      run: |
+        echo "Verifying Android Bionic build:"
+        file build_android/src/*.so
+    
+    - name: Package Android release
+      run: |
+        mkdir -p release/android-bionic-arm64/lib
+        mkdir -p release/android-bionic-arm64/config
+        mkdir -p release/android-bionic-arm64/docs
+        mkdir -p release/android-bionic-arm64/fx
+        
+        # Copy libraries
+        cp build_android/src/*.so release/android-bionic-arm64/lib/
+        
+        # Copy configs
+        cp config/VulkanFX.conf release/android-bionic-arm64/config/
+        cp build_android/config/VulkanFX.json release/android-bionic-arm64/config/ || true
+        
+        # Copy documentation
+        cp README.md release/android-bionic-arm64/docs/
+        cp WINLATOR_GUIDE.md release/android-bionic-arm64/docs/ || true
+        cp BUILD_SYSTEMS.md release/android-bionic-arm64/docs/ || true
+        
+        # Copy ReShade shaders
+        cp -r fx/* release/android-bionic-arm64/fx/ 2>/dev/null || true
+        
+        # Create archive
+        cd release
+        tar -czf VulkanFX-android-bionic-arm64.tar.gz android-bionic-arm64
+        cd ..
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: VulkanFX-android-bionic-arm64
+        path: release/VulkanFX-android-bionic-arm64.tar.gz
 
   create-github-release:
     name: Create GitHub Release
-    needs: build-release
+    needs: [build-linux-glibc, build-android-bionic]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
@@ -149,33 +185,69 @@ jobs:
         cat > RELEASE_NOTES.md << 'EOF'
         # VulkanFX Release
         
-        ## Features
-        - Vulkan post-processing layer
-        - CAS, FXAA, SMAA, DLS effects
-        - ReShade FX shader support
-        - Vulkan 1.0 - 1.4 compatible
-        - Works with Winlator/Wine/Proton
+        ## 🎮 Vulkan Post-Processing Layer
         
-        ## Platforms
-        - Linux x86_64
-        - Android ARM64 (Termux, Winlator)
+        ### Features
+        - ✅ CAS (Contrast Adaptive Sharpening)
+        - ✅ FXAA (Fast Approximate Anti-Aliasing)
+        - ✅ SMAA (Subpixel Morphological Anti-Aliasing)
+        - ✅ DLS (Deep Learning Super Sampling)
+        - ✅ ReShade FX shader support
+        - ✅ Vulkan 1.0 - 1.4 compatible
         
-        ## Build Systems
-        - Meson
-        - CMake
-        - Android Studio NDK
+        ### Platforms
         
-        ## Installation
-        See README.md for installation instructions.
+        #### Linux (Glibc) - Desktop Linux
+        - Ubuntu, Debian, Fedora, Arch, etc.
+        - x86_64 architecture
+        - Built with Meson
         
-        ## Changelog
-        See CHANGELOG.md for detailed changes.
+        #### Android (Bionic) - Termux & Winlator
+        - Android 7.0+ (API 24+)
+        - ARM64 (aarch64) architecture
+        - Built with Meson + Android NDK
+        - Perfect for Termux and Winlator
+        
+        ### Build Systems
+        - ✅ Meson (primary)
+        - ✅ CMake (alternative)
+        - ✅ Android Studio NDK
+        
+        ### Installation
+        
+        **Linux:**
+        ```bash
+        tar -xzf VulkanFX-linux-glibc-x86_64.tar.gz
+        cd linux-glibc-x86_64
+        cp lib/*.so ~/.local/lib/
+        cp config/VulkanFX.json ~/.local/share/vulkan/implicit_layer.d/
+        ```
+        
+        **Android/Termux/Winlator:**
+        ```bash
+        tar -xzf VulkanFX-android-bionic-arm64.tar.gz
+        cd android-bionic-arm64
+        cp lib/*.so ~/.local/lib/
+        cp config/VulkanFX.json ~/.local/share/vulkan/implicit_layer.d/
+        ```
+        
+        ### Documentation
+        - README.md - Quick start guide
+        - BUILD_SYSTEMS.md - Build instructions
+        - WINLATOR_GUIDE.md - Winlator integration
+        - CHANGELOG.md - Version history
+        
+        ### Support
+        - Issues: https://github.com/remartrobles723-prog/VulkanFX/issues
+        - Discussions: https://github.com/remartrobles723-prog/VulkanFX/discussions
         EOF
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: artifacts/**/*.tar.gz
+        files: |
+          artifacts/VulkanFX-linux-glibc-x86_64/*.tar.gz
+          artifacts/VulkanFX-android-bionic-arm64/*.tar.gz
         body_path: RELEASE_NOTES.md
         draft: false
         prerelease: false
