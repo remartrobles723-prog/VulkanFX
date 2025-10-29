@@ -352,8 +352,8 @@ namespace VulkanFX
                 vulkanFunctions.vkFreeMemory                   = (PFN_vkFreeMemory)vkGetDeviceProcAddr(pLogicalDevice->device, "vkFreeMemory");
 
                 VmaAllocatorCreateInfo allocatorCreateInfo = {};
-                allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
-                allocatorCreateInfo.vulkanApiVersion       = VK_API_VERSION_1_2;
+                allocatorCreateInfo.flags                  = 0; // No special flags for Vulkan 1.0
+                allocatorCreateInfo.vulkanApiVersion       = VK_API_VERSION_1_0;
                 allocatorCreateInfo.physicalDevice         = pLogicalDevice->physicalDevice;
                 allocatorCreateInfo.device                 = pLogicalDevice->device;
                 allocatorCreateInfo.instance               = pLogicalDevice->instance;

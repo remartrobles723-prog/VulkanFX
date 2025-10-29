@@ -5,7 +5,7 @@
 const auto debug_lvl = std::getenv("VULKANFX_LOG_LEVEL");
 const auto vma_debug = std::string(debug_lvl ?: "") == "debug";
 
-#define VMA_VULKAN_VERSION 1002000 // Vulkan 1.2
+#define VMA_VULKAN_VERSION 1000000 // Vulkan 1.0 for better compatibility
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 
