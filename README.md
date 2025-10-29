@@ -2,6 +2,20 @@
 
 ✅ **Successfully built and configured!**
 
+## 📦 Clone Repository
+
+**Important:** Clone with submodules!
+
+```bash
+git clone --recursive -b VulkanFX https://github.com/remartrobles723-prog/VulkanFX.git
+cd VulkanFX
+```
+
+Or if already cloned:
+```bash
+git submodule update --init --recursive
+```
+
 ## 🚀 Quick Test
 
 ### Prerequisites
