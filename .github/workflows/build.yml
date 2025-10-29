@@ -28,16 +28,33 @@ jobs:
           gcc g++ pkg-config
     
     - name: Setup build
-      run: meson setup build
+      run: |
+        echo "=== Meson Setup for Linux (Glibc) ==="
+        echo "Build type: release"
+        echo "Platform: Linux x86_64"
+        echo "Libc: Glibc"
+        meson setup build
+        echo "=== Meson configuration complete ==="
     
     - name: Build
-      run: ninja -C build
+      run: |
+        echo "=== Building with Ninja ==="
+        ninja -C build -v
+        echo "=== Build complete ==="
     
     - name: List built files
       run: |
-        echo "Built libraries (Glibc):"
+        echo "=== Built Libraries (Glibc) ==="
+        echo "Checking file types:"
         file build/src/*.so
+        echo ""
+        echo "File sizes:"
         ls -lh build/src/*.so
+        echo ""
+        echo "Library dependencies:"
+        ldd build/src/libVkLayer_VulkanFX_default.so || true
+        echo ""
+        echo "=== Build artifacts ready ==="
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -72,6 +89,10 @@ jobs:
     
     - name: Create Meson cross-file for Android
       run: |
+        echo "=== Creating Android NDK Cross-Compilation File ==="
+        echo "NDK: $ANDROID_NDK_HOME"
+        echo "Target: aarch64-linux-android24"
+        echo "Libc: Bionic"
         cat > android-cross.txt << 'EOF'
         [binaries]
         c = '$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang'
@@ -96,18 +117,35 @@ jobs:
     
     - name: Setup Meson build for Android
       run: |
+        echo "=== Meson Setup for Android (Bionic) ==="
+        echo "Cross-file: android-cross-expanded.txt"
+        echo "Build type: release"
+        echo "Platform: Android ARM64"
+        echo "Libc: Bionic"
         meson setup build_android \
           --cross-file android-cross-expanded.txt \
           -Dbuildtype=release
+        echo "=== Meson configuration complete ==="
     
     - name: Build for Android
-      run: ninja -C build_android
+      run: |
+        echo "=== Building for Android with Ninja ==="
+        ninja -C build_android -v
+        echo "=== Android build complete ==="
     
     - name: Verify Android build
       run: |
-        echo "Built libraries (Bionic):"
+        echo "=== Built Libraries (Bionic) ==="
+        echo "Checking file types:"
         file build_android/src/*.so
+        echo ""
+        echo "File sizes:"
         ls -lh build_android/src/*.so
+        echo ""
+        echo "Verifying Android binary:"
+        readelf -h build_android/src/libVkLayer_VulkanFX_default.so | grep -E 'Class|Machine|OS/ABI' || true
+        echo ""
+        echo "=== Android build artifacts ready ==="
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -138,10 +176,19 @@ jobs:
           gcc g++ pkg-config
     
     - name: Configure CMake
-      run: cmake -B build_cmake -G Ninja -DBUILD_ALL_VARIANTS=ON
+      run: |
+        echo "=== CMake Configuration ==="
+        echo "Generator: Ninja"
+        echo "Build all variants: ON"
+        cmake -B build_cmake -G Ninja -DBUILD_ALL_VARIANTS=ON
+        echo "=== CMake configuration complete ==="
     
     - name: Build
-      run: cmake --build build_cmake -j$(nproc)
+      run: |
+        echo "=== Building with CMake ==="
+        echo "Parallel jobs: $(nproc)"
+        cmake --build build_cmake -j$(nproc) --verbose
+        echo "=== CMake build complete ==="
     
     - name: List built files
       run: |

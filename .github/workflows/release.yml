@@ -33,11 +33,26 @@ jobs:
     
     - name: Build with Meson
       run: |
+        echo "=== Building VulkanFX for Linux (Glibc) ==="
+        echo "Platform: Linux x86_64"
+        echo "Libc: Glibc"
+        echo "Build system: Meson"
+        echo ""
+        echo "Setting up build..."
         meson setup build
-        ninja -C build
+        echo ""
+        echo "Building..."
+        ninja -C build -v
+        echo ""
+        echo "=== Build complete ==="
+        echo ""
+        echo "Built libraries:"
+        ls -lh build/src/*.so
     
     - name: Package Linux release
       run: |
+        echo "=== Packaging Linux (Glibc) Release ==="
+        echo ""
         mkdir -p release/linux-glibc-x86_64/lib
         mkdir -p release/linux-glibc-x86_64/config
         mkdir -p release/linux-glibc-x86_64/docs
@@ -66,9 +81,16 @@ jobs:
         cp -r fx/* release/linux-glibc-x86_64/fx/ 2>/dev/null || true
         
         # Create archive
+        echo ""
+        echo "Creating archive..."
         cd release
         tar -czf VulkanFX-linux-glibc-x86_64.tar.gz linux-glibc-x86_64
         cd ..
+        echo ""
+        echo "Archive created:"
+        ls -lh release/VulkanFX-linux-glibc-x86_64.tar.gz
+        echo ""
+        echo "=== Linux package complete ==="
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -122,18 +144,41 @@ jobs:
     
     - name: Build with Meson for Android
       run: |
+        echo "=== Building VulkanFX for Android (Bionic) ==="
+        echo "Platform: Android ARM64"
+        echo "Libc: Bionic"
+        echo "Build system: Meson + NDK"
+        echo "NDK: $ANDROID_NDK_HOME"
+        echo ""
+        echo "Setting up build..."
         meson setup build_android \
           --cross-file android-cross-expanded.txt \
           -Dbuildtype=release
-        ninja -C build_android
+        echo ""
+        echo "Building..."
+        ninja -C build_android -v
+        echo ""
+        echo "=== Build complete ==="
+        echo ""
+        echo "Built libraries:"
+        ls -lh build_android/src/*.so
     
     - name: Verify build
       run: |
-        echo "Verifying Android Bionic build:"
+        echo "=== Verifying Android Bionic Build ==="
+        echo ""
+        echo "File types:"
         file build_android/src/*.so
+        echo ""
+        echo "Binary details:"
+        readelf -h build_android/src/libVkLayer_VulkanFX_default.so | grep -E 'Class|Machine|OS/ABI|Type'
+        echo ""
+        echo "=== Verification complete ==="
     
     - name: Package Android release
       run: |
+        echo "=== Packaging Android (Bionic) Release ==="
+        echo ""
         mkdir -p release/android-bionic-arm64/lib
         mkdir -p release/android-bionic-arm64/config
         mkdir -p release/android-bionic-arm64/docs
@@ -155,9 +200,16 @@ jobs:
         cp -r fx/* release/android-bionic-arm64/fx/ 2>/dev/null || true
         
         # Create archive
+        echo ""
+        echo "Creating archive..."
         cd release
         tar -czf VulkanFX-android-bionic-arm64.tar.gz android-bionic-arm64
         cd ..
+        echo ""
+        echo "Archive created:"
+        ls -lh release/VulkanFX-android-bionic-arm64.tar.gz
+        echo ""
+        echo "=== Android package complete ==="
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4

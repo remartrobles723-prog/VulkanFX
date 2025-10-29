@@ -29,40 +29,87 @@ jobs:
     
     - name: Build with Meson
       run: |
+        echo "=== Building VulkanFX with Meson ==="
+        echo "Setting up build directory..."
         meson setup build
-        ninja -C build
+        echo ""
+        echo "Building with Ninja..."
+        ninja -C build -v
+        echo ""
+        echo "=== Build complete ==="
     
     - name: Verify libraries
       run: |
-        echo "Checking built libraries..."
+        echo "=== Verifying Built Libraries ==="
+        echo ""
         for lib in build/src/*.so; do
-          echo "=== $lib ==="
+          echo "━━━ $(basename $lib) ━━━"
+          echo "File type:"
           file "$lib"
+          echo ""
+          echo "Size:"
+          ls -lh "$lib"
+          echo ""
+          echo "Dependencies:"
           ldd "$lib" || true
           echo ""
+          echo "Symbols:"
+          nm -D "$lib" | grep -i "vkNegotiate" || echo "  Warning: vkNegotiateLoaderLayerInterfaceVersion not found"
+          echo ""
         done
+        echo "=== Verification complete ==="
     
     - name: Check library symbols
       run: |
-        echo "Checking Vulkan layer symbols..."
-        nm -D build/src/libVkLayer_VulkanFX_default.so | grep -i "vkNegotiate" || echo "Warning: vkNegotiateLoaderLayerInterfaceVersion not found"
+        echo "=== Checking Vulkan Layer Symbols ==="
+        echo ""
+        echo "Required symbols:"
+        nm -D build/src/libVkLayer_VulkanFX_default.so | grep -i "vkNegotiate" && echo "✓ vkNegotiateLoaderLayerInterfaceVersion found" || echo "✗ vkNegotiateLoaderLayerInterfaceVersion not found"
+        echo ""
+        echo "Exported functions:"
+        nm -D build/src/libVkLayer_VulkanFX_default.so | grep " T " | head -20
+        echo ""
+        echo "=== Symbol check complete ==="
     
     - name: Validate layer manifest
       run: |
-        echo "Validating layer manifest..."
+        echo "=== Validating Layer Manifest ==="
+        echo ""
         if [ -f build/config/VulkanFX.json ]; then
+          echo "Manifest file found: build/config/VulkanFX.json"
+          echo ""
+          echo "Contents:"
           cat build/config/VulkanFX.json
-          # Check JSON validity
-          python3 -m json.tool build/config/VulkanFX.json > /dev/null && echo "✓ Valid JSON"
+          echo ""
+          echo "JSON validation:"
+          python3 -m json.tool build/config/VulkanFX.json > /dev/null && echo "✓ Valid JSON" || echo "✗ Invalid JSON"
+          echo ""
+          echo "Checking required fields:"
+          grep -q '"file_format_version"' build/config/VulkanFX.json && echo "✓ file_format_version present" || echo "✗ file_format_version missing"
+          grep -q '"layer"' build/config/VulkanFX.json && echo "✓ layer section present" || echo "✗ layer section missing"
+          grep -q '"name"' build/config/VulkanFX.json && echo "✓ name present" || echo "✗ name missing"
         else
-          echo "Warning: Layer manifest not found"
+          echo "✗ Warning: Layer manifest not found"
         fi
+        echo ""
+        echo "=== Manifest validation complete ==="
     
     - name: Test CMake build
       run: |
+        echo "=== Testing CMake Build ==="
+        echo ""
+        echo "Configuring..."
         cmake -B build_cmake -DBUILD_ALL_VARIANTS=ON
-        cmake --build build_cmake
-        echo "CMake build successful!"
+        echo ""
+        echo "Building..."
+        cmake --build build_cmake --verbose
+        echo ""
+        echo "Verifying outputs..."
+        find build_cmake -name "*.so" -type f -exec ls -lh {} \;
+        echo ""
+        echo "✓ CMake build successful!"
+        echo ""
+        echo "=== CMake test complete ==="
 
   test-compatibility:
     name: Test Vulkan Compatibility
