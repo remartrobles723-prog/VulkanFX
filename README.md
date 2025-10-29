@@ -1,129 +1,78 @@
-# VulkanFX - Working Build for Termux
+# VulkanFX - Vulkan Post-Processing Layer
 
-✅ **Successfully built and configured!**
+Post-processing layer for Vulkan with ReShade FX support.
 
-## 📦 Clone Repository
+## 🚀 Quick Start
 
-**Important:** Clone with submodules!
-
+### Clone
 ```bash
 git clone --recursive -b VulkanFX https://github.com/remartrobles723-prog/VulkanFX.git
 cd VulkanFX
 ```
 
-Or if already cloned:
-```bash
-git submodule update --init --recursive
-```
-
-## 🚀 Quick Start
-
-### Build (No Install Needed!)
-
+### Build
 ```bash
 meson setup build
 ninja -C build
 ```
 
-**That's it!** All files are in `build/` directory.
-
-### Test It
-
+### Use
 ```bash
-# Set environment
 export VK_LAYER_PATH="$PWD/build/config"
 export ENABLE_VULKANFX=1
-
-# Run vkcube
 vkcube
 ```
 
-**Or use the test script:**
+## 📋 Features
 
-```bash
-./complete_test.sh
-```
+- **CAS** - Contrast Adaptive Sharpening
+- **FXAA** - Fast Approximate Anti-Aliasing  
+- **SMAA** - Subpixel Morphological Anti-Aliasing
+- **DLS** - Deep Learning Super Sampling
+- **ReShade FX** - Custom shader support
+- **Vulkan 1.0+** compatible
 
-### Prerequisites
-1. Install **Termux:X11** app from: https://github.com/termux/termux-x11/releases
+## 🎮 Configuration
 
-This will:
-1. Start X11 server
-2. Launch vkcube with VulkanFX
-3. Show you the effects!
+Edit `~/.config/VulkanFX/VulkanFX.conf`:
 
-### How to See Effects
-
-1. **Open Termux:X11 app** (before running script)
-2. **Run the script** - you'll see a rotating cube
-3. **Press HOME key** on your device
-4. **Watch the cube** - texture will become sharper/softer!
-
-## 👀 What You'll See
-
-**Effects ON (after pressing HOME):**
-- ✅ **VERY sharp** cube texture
-- ✅ Crisp, defined edges
-- ✅ Enhanced details
-
-**Effects OFF:**
-- Softer, blurrier texture
-- Less defined edges
-
-## ⚙️ Configuration
-
-VulkanFX is configured with **EXTREME** settings:
-- 5x CAS (Contrast Adaptive Sharpening) passes
-- Maximum sharpness (1.0)
-- Very noticeable difference!
-
-Config file: `~/.config/VulkanFX/VulkanFX.conf`
-
-## 🔧 Adjust Effects
-
-Edit the config:
-```bash
-nano ~/.config/VulkanFX/VulkanFX.conf
-```
-
-Available effects:
-- `cas` - Contrast Adaptive Sharpening
-- `dls` - Denoised Luma Sharpening
-- `fxaa` - Fast Approximate Anti-Aliasing
-- `smaa` - Enhanced Subpixel Morphological Antialiasing
-
-Example:
 ```ini
-effects = cas:cas:cas:cas:cas
-casSharpness = 1.0
+effects = cas:fxaa
+casSharpness = 0.7
 toggleKey = Home
+enableOnLaunch = True
 ```
 
-## 📁 Files
+## 📚 Documentation
 
-- **`complete_test.sh`** - All-in-one test script ⭐
-- **`~/.local/share/vulkan/implicit_layer.d/VulkanFX.json`** - Layer manifest
-- **`~/.config/VulkanFX/VulkanFX.conf`** - Configuration
-- **`build/src/libVkLayer_VulkanFX_*.so`** - Built libraries
+- [BUILD_SYSTEMS.md](BUILD_SYSTEMS.md) - Build with CMake, Meson, Android Studio
+- [WINLATOR_GUIDE.md](WINLATOR_GUIDE.md) - Use with Winlator/Wine/Proton
+- [RESHADE_GUIDE.md](RESHADE_GUIDE.md) - ReShade effects guide
+- [CHANGELOG.md](CHANGELOG.md) - Version history
 
-## 🛑 Stop X11
+## 🔧 Build Systems
 
-```bash
-pkill -f com.termux.x11
-```
+- **Meson** (primary)
+- **CMake** (alternative)
+- **Android Studio** (NDK)
 
-## 🏗️ Rebuild
+## 📦 Platforms
 
-```bash
-ninja -C build
-```
+- **Linux** (Glibc, x86_64)
+- **Android** (Bionic, ARM64) - Termux, Winlator
 
-## 📚 More Info
+## ⚙️ Requirements
 
-- **Repository**: https://github.com/remartrobles723-prog/VulkanFX
-- **Based on**: vkBasalt by DadSchoorse
-- **Platform**: Termux on Android (ARM64)
+- Vulkan 1.0+
+- X11 (for keyboard input)
+- Meson + Ninja or CMake
 
----
+## 📄 License
 
-**Just run:** `./complete_test.sh` 🎉
+See [LICENSE](LICENSE)
+
+## 🔗 Links
+
+- **Original**: [vkBasalt](https://github.com/DadSchoorse/vkBasalt)
+- **Fork**: [VulkanFX](https://github.com/pchome/VulkanFX)
+- **This Build**: Termux/Android optimized
