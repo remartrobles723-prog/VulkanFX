@@ -119,11 +119,13 @@ jobs:
     - name: Run cppcheck
       run: |
         cppcheck --enable=warning,style,performance \
+          --suppressions-list=.cppcheck-suppressions \
           --suppress=missingIncludeSystem \
           --suppress=unmatchedSuppression \
           -I src \
           -I subprojects/vkroots/include \
           src/*.cpp 2>&1 | tee cppcheck.log || true
+        echo "Cppcheck completed. Check cppcheck.log for details."
     
     - name: Check for common issues
       run: |

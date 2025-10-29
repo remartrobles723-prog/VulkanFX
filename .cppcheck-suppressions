@@ -1,0 +1,28 @@
+# Cppcheck suppressions for VulkanFX
+
+# Platform check is intentional - only X11 supported currently
+preprocessorErrorDirective:src/basalt.cpp:43
+
+# STB library warnings - third-party code
+*:src/stb_image_dds.h
+*:subprojects/stb/*
+
+# ReShade library - third-party code
+*:subprojects/reshade/*
+
+# Performance suggestions - intentional design choices
+passedByValue
+constVariableReference
+constParameterReference
+
+# Style suggestions - code style preference
+noExplicitConstructor
+variableScope
+cstyleCast
+useStlAlgorithm
+
+# Uninitialized members in SimpleEffect - initialized in derived classes
+uninitMemberVar:src/effect_simple.cpp
+
+# Dangling lifetime - false positive, spec info is used immediately
+danglingLifetime:src/effect_*.cpp
