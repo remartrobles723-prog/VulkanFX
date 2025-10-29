@@ -1,3 +1,6 @@
+[submodule "subprojects/reshade"]
+	path = subprojects/reshade
+	url = https://github.com/crosire/reshade
 [submodule "subprojects/vkroots"]
 	path = subprojects/vkroots
 	url = https://github.com/misyltoad/vkroots
