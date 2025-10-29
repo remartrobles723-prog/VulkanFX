@@ -1,0 +1,22 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "*.json.in"
+      ],
+      "url": "./layers_schema.json"
+    }
+  ],
+  "files.associations": {
+    "*.json.in": "json"
+  },
+  "clangd.arguments": [
+    "--clang-tidy",
+    "--header-insertion=iwyu"
+  ],
+  "clangd.fallbackFlags": [
+    "-std=c++23",
+    "-I${workspaceFolder}/builddir/src/libsimple_effects.a.p",
+    "-I${workspaceFolder}/builddir/src"
+  ]
+}

@@ -1,0 +1,6 @@
+[submodule "subprojects/vkroots"]
+	path = subprojects/vkroots
+	url = https://github.com/misyltoad/vkroots
+[submodule "subprojects/stb"]
+	path = subprojects/stb
+	url = https://github.com/nothings/stb

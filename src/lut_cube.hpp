@@ -1,0 +1,65 @@
+#pragma once
+#ifndef LUT_CUBE_HPP_INCLUDED
+#define LUT_CUBE_HPP_INCLUDED
+
+#include <vector>
+#include <string>
+#include <cstdlib>
+
+namespace VulkanFX
+{
+    /*
+       reads .cube files
+       returns a vector of bytes
+       one byte is one color value
+       4 bytes stand for rgba
+       the alpha value is always 255
+
+       size will be set according to the size in the file, which can be in [2,256]
+       the cube will have the dimentions size * size * size
+
+       so the vector will have a length of size*size*size*4
+
+       See: https://wwwimages2.adobe.com/content/dam/acom/en/products/speedgrade/cc/pdfs/cube-lut-specification-1.0.pdf
+    */
+    class LutCube
+    {
+    public:
+        std::vector<unsigned char> colorCube;
+        int                        size;
+
+        LutCube(const std::string& file);
+        LutCube();
+
+    private:
+        static constexpr char8_t cval_min  = 0;
+        static constexpr char8_t cval_max  = 255;
+        static constexpr int     colorSize = 4; // 4 bytes per point in the cube, rgba
+
+        float minX = 0.0f;
+        float minY = 0.0f;
+        float minZ = 0.0f;
+
+        float maxX = 1.0f;
+        float maxY = 1.0f;
+        float maxZ = 1.0f;
+
+        int currentX = 0;
+        int currentY = 0;
+        int currentZ = 0;
+
+        void writeColor(int x, int y, int z, unsigned char r, unsigned char g, unsigned char b);
+
+        void parseLine(std::string line);
+
+        // splits a tripel of floats
+        void splitTripel(std::string tripel, float& x, float& y, float& z);
+
+        void clampTripel(float x, float y, float z, unsigned char& outX, unsigned char& outY, unsigned char& outZ);
+
+        // returns the text without leading whitespace
+        auto skipWhiteSpace(std::string text) -> std::string;
+    };
+
+} // namespace VulkanFX
+#endif // LUT_CUBE_HPP_INCLUDED
