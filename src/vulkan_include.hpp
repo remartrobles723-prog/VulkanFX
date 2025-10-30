@@ -8,6 +8,7 @@
 #include "vma_usage.hpp"
 #include <vkroots.h>
 
+#undef None
 #include "logger.hpp"
 
 #ifndef ASSERT_VULKAN
