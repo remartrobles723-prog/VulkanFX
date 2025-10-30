@@ -97,6 +97,7 @@ shared_library('VkLayer_VulkanFX_simple', vulkanfx_src,
     link_with: [keyboard_input_x11_lib, simple_effects_lib],
     include_directories : vulkanfx_include_path,
     dependencies : [x11_dep, reshade_dep, vkroots_dep, stb_dep],
+    link_args: ['-lc++_shared'],
     gnu_symbol_visibility: 'hidden',
     install : true,
     install_dir : lib_dir)
